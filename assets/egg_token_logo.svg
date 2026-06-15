@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0a0a14"/>
+    </radialGradient>
+    <radialGradient id="eggGrad" cx="45%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#FFFDF5"/>
+      <stop offset="60%" stop-color="#FFF5E0"/>
+      <stop offset="100%" stop-color="#F0E0C0"/>
+    </radialGradient>
+    <radialGradient id="yolkGrad" cx="40%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#FFE066"/>
+      <stop offset="100%" stop-color="#FFB800"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="url(#bg)"/>
+
+  <!-- Outer ring -->
+  <circle cx="256" cy="256" r="240" fill="none" stroke="#FFD93D" stroke-width="3" opacity="0.3"/>
+  <circle cx="256" cy="256" r="230" fill="none" stroke="#FFD93D" stroke-width="1" opacity="0.15"/>
+
+  <!-- Crosshair lines (launcher motif) -->
+  <line x1="256" y1="40" x2="256" y2="130" stroke="#FFD93D" stroke-width="2" opacity="0.25" stroke-dasharray="6,6"/>
+  <line x1="256" y1="382" x2="256" y2="472" stroke="#FFD93D" stroke-width="2" opacity="0.25" stroke-dasharray="6,6"/>
+  <line x1="40" y1="256" x2="130" y2="256" stroke="#FFD93D" stroke-width="2" opacity="0.25" stroke-dasharray="6,6"/>
+  <line x1="382" y1="256" x2="472" y2="256" stroke="#FFD93D" stroke-width="2" opacity="0.25" stroke-dasharray="6,6"/>
+
+  <!-- Crosshair circle -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#FFD93D" stroke-width="1.5" opacity="0.2"/>
+
+  <!-- Egg shape (main) -->
+  <g filter="url(#glow)">
+    <ellipse cx="256" cy="240" rx="90" ry="115" fill="url(#eggGrad)" transform="rotate(-5, 256, 240)"/>
+    <ellipse cx="256" cy="240" rx="90" ry="115" fill="none" stroke="#E8D5B0" stroke-width="2" transform="rotate(-5, 256, 240)"/>
+  </g>
+
+  <!-- Crack lines -->
+  <path d="M220 230 L235 215 L225 200 L240 190" fill="none" stroke="#D4C4A0" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M235 215 L250 220" fill="none" stroke="#D4C4A0" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Yolk peeking through crack -->
+  <circle cx="238" cy="210" r="12" fill="url(#yolkGrad)" opacity="0.7"/>
+
+  <!-- Egg shine -->
+  <ellipse cx="278" cy="185" rx="18" ry="30" fill="white" opacity="0.2" transform="rotate(-15, 278, 185)"/>
+
+  <!-- $EGG text -->
+  <text x="256" y="410" text-anchor="middle" font-family="'Arial Black', 'Helvetica', sans-serif" font-weight="900" font-size="52" fill="#FFD93D" letter-spacing="4">$EGG</text>
+
+  <!-- 140K subtitle -->
+  <text x="256" y="445" text-anchor="middle" font-family="'Arial', sans-serif" font-weight="600" font-size="18" fill="#6a6a8a" letter-spacing="6">140K EGGS</text>
+</svg>

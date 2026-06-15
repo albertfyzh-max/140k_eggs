@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>140K Eggs — $EGG</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--surface:#141420;--s2:#1c1c2e;--border:#2a2a40;--yolk:#FFD93D;--ydim:rgba(255,217,61,.12);--white:#F0F0F5;--red:#FF6B6B;--green:#6BCB77;--blue:#4D96FF;--purple:#B07AFF;--dim:#6a6a8a;--font:'Space Grotesk',system-ui,sans-serif;--mono:'Space Mono',monospace}
+body{font-family:var(--font);background:var(--bg);color:var(--white);min-height:100vh;overflow:hidden;user-select:none;touch-action:none}
+.app{display:flex;flex-direction:column;height:100vh;width:100vw}
+.top-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:var(--surface);border-bottom:1px solid var(--border);z-index:10;flex-shrink:0}
+.logo{font-size:15px;font-weight:700;color:var(--yolk)}.logo span{color:var(--dim);font-weight:400;font-size:11px}
+.stats-row{display:flex;gap:10px}.stat{text-align:center}.stat .val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--yolk)}.stat .lbl{font-size:7px;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim)}
+.game-area{flex:1;position:relative;overflow:hidden;cursor:crosshair}
+canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;top:0;left:0;right:0;padding:6px 10px;display:flex;justify-content:space-between;pointer-events:none}
+.hud-pill{background:rgba(20,20,32,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:16px;padding:4px 10px;font-size:10px;font-weight:600;display:flex;align-items:center;gap:4px}
+.dot{width:6px;height:6px;border-radius:50%}.dot.g{background:var(--green)}.dot.y{background:var(--yolk)}
+.combo-pop{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);font-size:48px;font-weight:700;color:var(--yolk);text-shadow:0 0 40px rgba(255,217,61,.6);pointer-events:none;opacity:0;transition:opacity .15s}.combo-pop.show{opacity:1}
+.wave-pop{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:700;color:var(--red);text-shadow:0 0 20px rgba(255,107,107,.5);pointer-events:none;opacity:0;transition:opacity .3s}.wave-pop.show{opacity:1}
+.bbar{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:var(--surface);border-top:1px solid var(--border);z-index:10;flex-shrink:0;font-size:10px}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;display:inline-block;margin-right:4px}
+/* Power-up indicators */
+.pu-bar{display:flex;gap:4px;position:absolute;bottom:50px;left:50%;transform:translateX(-50%);pointer-events:none}
+.pu-icon{background:rgba(20,20,32,.85);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:14px;animation:puBounce .5s ease-out}
+@keyframes puBounce{0%{transform:scale(0)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+
+/* Overlay screens - same as v2 */
+.ov{position:fixed;inset:0;background:rgba(10,10,15,.94);backdrop-filter:blur(12px);z-index:100;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:16px}
+.ov.h{display:none}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 20px;max-width:400px;width:100%;text-align:center}
+.card h1{font-size:26px;margin-bottom:4px}.card h2{font-size:18px;margin-bottom:8px;color:var(--yolk)}
+.sub{color:var(--dim);font-size:12px;margin-bottom:16px;line-height:1.6}
+.origin{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:10px;color:var(--dim);line-height:1.7;margin-bottom:16px;text-align:left}.origin strong{color:var(--yolk)}
+.btn{border:none;border-radius:10px;padding:12px 32px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-block;margin:3px}
+.btn-y{background:linear-gradient(135deg,var(--yolk),#FFA94D);color:#000}.btn-y:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,217,61,.3)}
+.btn-s{background:var(--s2);color:var(--white);border:1px solid var(--border);padding:8px 16px;font-size:11px}.btn-s:hover{border-color:var(--yolk)}
+.wallet-bar{background:var(--ydim);border:1px solid rgba(255,217,61,.2);border-radius:10px;padding:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.wallet-bar .wb-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--yolk)}.wallet-bar .wb-val{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--yolk)}
+.tg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0;text-align:left}
+.ti{background:var(--s2);border-radius:8px;padding:8px}.ti .tl{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:1px}.ti .tv{font-family:var(--mono);font-size:13px;font-weight:700}.tv.y{color:var(--yolk)}.tv.g{color:var(--green)}.tv.b{color:var(--blue)}.tv.r{color:var(--red)}
+.br{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:9px}.br .bg{flex:1;height:10px;background:var(--s2);border-radius:4px;overflow:hidden}.br .fg{height:100%;border-radius:4px}
+.choice-row{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+.choice-card{flex:1;min-width:130px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;text-align:center}
+.choice-card:hover{border-color:var(--yolk);background:rgba(255,217,61,.05)}
+.choice-card .cc-icon{font-size:28px;margin-bottom:6px}.choice-card .cc-title{font-size:13px;font-weight:700;margin-bottom:3px}.choice-card .cc-desc{font-size:10px;color:var(--dim);line-height:1.5}
+.choice-card .cc-cost{margin-top:6px;font-family:var(--mono);font-size:12px;font-weight:700}.cc-cost.free{color:var(--green)}.cc-cost.paid{color:var(--yolk)}
+.choice-card.disabled{opacity:.35;pointer-events:none}
+.cooldown{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.2);border-radius:8px;padding:8px;font-size:10px;color:var(--red);margin-bottom:10px}
+.econ-box{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px;margin:10px 0;text-align:left;font-size:10px;color:var(--dim);line-height:1.8}.econ-box strong{color:var(--white)}.econ-box .hl{color:var(--yolk);font-family:var(--mono);font-weight:700}
+.sep{height:1px;background:var(--border);margin:12px 0}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}
+.ri{background:var(--s2);border-radius:8px;padding:8px}.ri .rv{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--yolk)}.ri .rl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+@media(max-width:600px){.card{padding:18px 14px}.card h1{font-size:22px}.choice-row{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<!-- START -->
+<div class="ov" id="scrStart"><div class="card">
+  <h1>🥚 140K Eggs</h1>
+  <div class="sub">Throw eggs at $SIREN. Mine $EGG. Get revenge.</div>
+  <div class="wallet-bar"><div><div class="wb-label">Your $EGG Balance</div><div class="wb-val" id="balDisplay">0.000000</div></div><div style="font-size:20px">🥚</div></div>
+  <div class="origin"><strong>@Blonskr</strong> lost ~$20K on <strong style="color:var(--red)">$SIREN</strong> in 2 days = <strong>~140,000 eggs</strong>. He promised an egg launcher. We built it.</div>
+  <button class="btn btn-y" onclick="showChoice()">🎯 Play</button><br/>
+  <button class="btn btn-s" onclick="showEcon()">📊 Economics</button>
+  <button class="btn btn-s" onclick="showHow()">❓ How to Play</button>
+</div></div>
+
+<!-- CHOICE -->
+<div class="ov h" id="scrChoice"><div class="card">
+  <h2>Choose Mode</h2>
+  <div id="cdNotice"></div>
+  <div class="choice-row">
+    <div class="choice-card" id="freeCard" onclick="startGame('free')"><div class="cc-icon">🎮</div><div class="cc-title">Free Play</div><div class="cc-desc">1 free per 24h. Standard mining.</div><div class="cc-cost free" id="freeLabel">FREE</div></div>
+    <div class="choice-card" id="paidCard" onclick="startGame('paid')"><div class="cc-icon">⚡</div><div class="cc-title">Boost Play</div><div class="cc-desc"><strong style="color:var(--yolk)">3x mining.</strong> Costs $EGG.</div><div class="cc-cost paid" id="paidCost">0.000000</div></div>
+  </div>
+  <div class="econ-box">
+    <strong>Epoch <span class="hl" id="epochNum">1</span></strong> — Base: <span class="hl" id="baseReward">—</span> $EGG/game<br/>
+    Pool: <span class="hl" id="epochRemain">—</span> — Mined: <span class="hl" id="totalMined">—</span>/98,000
+  </div>
+  <button class="btn btn-s" onclick="hideChoice()">← Back</button>
+</div></div>
+
+<!-- HOW -->
+<div class="ov h" id="scrHow"><div class="card">
+  <h2>🎮 How to Play</h2>
+  <div class="sub" style="text-align:left;font-size:11px;line-height:1.8">
+    <strong style="color:var(--yolk)">Tap to throw</strong> eggs at $SIREN targets. The boy aims where you tap.<br/>
+    <strong style="color:var(--green)">Combos</strong> multiply your score (2x, 3x, 4x...).<br/>
+    <strong style="color:var(--purple)">Power-ups</strong> drop from targets: 🔥 Fire Egg (AoE) · ⚡ Triple Shot · ⏰ +5 Seconds · 💎 5x Score<br/>
+    <strong style="color:var(--red)">$SIREN types:</strong> Green (normal) · Red (fast, rug-pull) · Purple (pump, inflating) · Gold Boss (3 HP, big reward)<br/>
+    <strong style="color:var(--blue)">Waves</strong> get harder every 15 seconds with more targets and faster movement.
+  </div>
+  <button class="btn btn-y" onclick="hideHow()">Got It</button>
+</div></div>
+
+<!-- ECONOMICS -->
+<div class="ov h" id="scrEcon"><div class="card">
+  <h2>📊 $EGG Economics</h2>
+  <div class="sub">Total: <span style="color:var(--yolk);font-family:var(--mono);font-weight:700">140,000 $EGG</span> (deflationary)</div>
+  <div class="br"><span style="width:70px;color:var(--yolk)">Mine 70%</span><div class="bg"><div class="fg" style="width:70%;background:var(--yolk)"></div></div></div>
+  <div class="br"><span style="width:70px;color:var(--green)">Team 15%</span><div class="bg"><div class="fg" style="width:15%;background:var(--green)"></div></div></div>
+  <div class="br"><span style="width:70px;color:var(--blue)">LP 10%</span><div class="bg"><div class="fg" style="width:10%;background:var(--blue)"></div></div></div>
+  <div class="br"><span style="width:70px;color:var(--red)">Reserve 5%</span><div class="bg"><div class="fg" style="width:5%;background:var(--red)"></div></div></div>
+  <div class="econ-box">
+    <strong>BTC-Style Halving:</strong> 49K → 24.5K → 12.25K per epoch<br/>
+    <strong>Burn Loop:</strong> Boost costs → <span class="hl">50% burned</span>, 50% recycled<br/>
+    <strong>RTP:</strong> <span class="hl">89.27%</span> — Boost Play returns 89.27% of cost on average<br/>
+    <strong>Luck Roll:</strong> Each session gets a random 0.4x–1.6x multiplier (skill + luck)
+  </div>
+  <div class="tg">
+    <div class="ti"><div class="tl">Burned</div><div class="tv r" id="burnedD">0</div></div>
+    <div class="ti"><div class="tl">Effective Supply</div><div class="tv y" id="effSupply">140,000</div></div>
+  </div>
+  <button class="btn btn-y" onclick="hideEcon()">Close</button>
+</div></div>
+
+<!-- GAME OVER -->
+<div class="ov h" id="scrOver"><div class="card">
+  <h1>🍳 Round Over</h1>
+  <div class="rg">
+    <div class="ri"><div class="rv" id="fScore">0</div><div class="rl">Score</div></div>
+    <div class="ri"><div class="rv" id="fEggs">0</div><div class="rl">Thrown</div></div>
+    <div class="ri"><div class="rv" id="fHits">0</div><div class="rl">Hits</div></div>
+    <div class="ri"><div class="rv" id="fCombo">0x</div><div class="rl">Best Combo</div></div>
+  </div>
+  <div class="tg">
+    <div class="ti"><div class="tl">🎯 Accuracy</div><div class="tv b" id="fAcc">0%</div></div>
+    <div class="ti"><div class="tl">🍀 Luck Roll</div><div class="tv" id="fLuck" style="color:var(--green)">1.00x</div></div>
+  </div>
+  <div class="wallet-bar" style="flex-direction:column;gap:2px">
+    <div class="wb-label">$EGG Mined</div>
+    <div class="wb-val" id="fMined" style="font-size:24px">+0.000000</div>
+    <div style="font-size:9px;color:var(--dim)" id="fMode">Free Play</div>
+  </div>
+  <div class="tg">
+    <div class="ti"><div class="tl">Balance</div><div class="tv y" id="fBal">0</div></div>
+    <div class="ti"><div class="tl">Games Played</div><div class="tv b" id="fGames">0</div></div>
+  </div>
+  <button class="btn btn-y" onclick="showChoice()">🔄 Again</button>
+  <button class="btn btn-s" onclick="showStart()">Menu</button>
+</div></div>
+
+<!-- GAME -->
+<div class="app" id="gameUI" style="display:none">
+  <div class="top-bar">
+    <div class="logo">🥚 140K <span>$EGG</span></div>
+    <div class="stats-row">
+      <div class="stat"><div class="val" id="sScore">0</div><div class="lbl">Score</div></div>
+      <div class="stat"><div class="val" id="sCombo">1x</div><div class="lbl">Combo</div></div>
+      <div class="stat"><div class="val" id="sTime">45</div><div class="lbl">Time</div></div>
+      <div class="stat"><div class="val" id="sWave">1</div><div class="lbl">Wave</div></div>
+    </div>
+  </div>
+  <div class="game-area" id="gameArea">
+    <canvas id="C"></canvas>
+    <div class="hud"><div><div class="hud-pill"><div class="dot y"></div><span id="sEggs">0</span></div></div><div><div class="hud-pill"><div class="dot g"></div><span id="sMine">0.000000</span> $EGG</div></div></div>
+    <div class="combo-pop" id="comboPop"></div>
+    <div class="wave-pop" id="wavePop"></div>
+  </div>
+  <div class="bbar">
+    <div><span class="pulse"></span><span id="modeLabel">Free</span></div>
+    <div style="color:var(--yolk);font-family:var(--mono);font-weight:700" id="liveE">+0.000000</div>
+  </div>
+</div>
+
+<script>
+// ===== TOKENOMICS ENGINE (same as v2) =====
+const TS=140000,MP=98000,DEC=6,EPOCH_MS=7*24*3600000,BOOST=3,BURN_R=.5,RECY_R=.5;
+function loadS(){const d=localStorage.getItem('egg_s');if(d)return JSON.parse(d);return{bal:0,mined:0,burned:0,games:0,recycled:0,lastFree:0,epochStart:Date.now(),epochGames:0,epoch:1};}
+function saveS(){localStorage.setItem('egg_s',JSON.stringify(S));}
+let S=loadS();
+function checkEpoch(){const e=Date.now()-S.epochStart;if(e>=EPOCH_MS){S.epoch+=Math.floor(e/EPOCH_MS);S.epochStart=Date.now();S.epochGames=0;saveS();}}
+function epochPool(){return(MP/2)*Math.pow(.5,S.epoch-1)+S.recycled;}
+function baseReward(){const p=epochPool(),d=Math.max(S.epochGames+1,1000);return Math.min(p/d,1);}
+function boostCost(){return baseReward()*2;}
+function canFree(){return true; /* TESTING: cooldown disabled */}
+function freeCD(){const r=Math.max(0,86400000-(Date.now()-S.lastFree));return`${Math.floor(r/3600000)}h ${Math.floor((r%3600000)/60000)}m`;}
+function fmt(n){return n.toFixed(DEC);}
+
+// ===== SCREENS =====
+function hideAll(){['scrStart','scrChoice','scrHow','scrEcon','scrOver'].forEach(i=>document.getElementById(i).classList.add('h'));document.getElementById('gameUI').style.display='none';}
+function showStart(){hideAll();document.getElementById('balDisplay').textContent=fmt(S.bal);document.getElementById('scrStart').classList.remove('h');}
+function showChoice(){hideAll();checkEpoch();const b=baseReward(),c=boostCost(),f=canFree();
+document.getElementById('epochNum').textContent=S.epoch;document.getElementById('baseReward').textContent=fmt(b);document.getElementById('epochRemain').textContent=fmt(epochPool());document.getElementById('totalMined').textContent=fmt(S.mined);
+const fc=document.getElementById('freeCard'),fl=document.getElementById('freeLabel');
+if(f){fc.classList.remove('disabled');fl.textContent='FREE ✓';fl.className='cc-cost free';document.getElementById('cdNotice').innerHTML='';}
+else{fc.classList.add('disabled');fl.textContent='COOLDOWN';fl.className='cc-cost paid';document.getElementById('cdNotice').innerHTML=`<div class="cooldown">⏱ Free in <strong>${freeCD()}</strong></div>`;}
+document.getElementById('paidCost').textContent=`Cost: ${fmt(c)}`;
+const pc=document.getElementById('paidCard');if(S.bal>=c&&c>0)pc.classList.remove('disabled');else pc.classList.add('disabled');
+document.getElementById('scrChoice').classList.remove('h');}
+function hideChoice(){showStart();}
+function showHow(){document.getElementById('scrHow').classList.remove('h');}
+function hideHow(){document.getElementById('scrHow').classList.add('h');}
+function showEcon(){document.getElementById('burnedD').textContent=fmt(S.burned);document.getElementById('effSupply').textContent=fmt(TS-S.burned);document.getElementById('scrEcon').classList.remove('h');}
+function hideEcon(){document.getElementById('scrEcon').classList.add('h');}
+
+// ===== GAME ENGINE =====
+let canvas,ctx,W,H,gameActive=false,gameMode='free';
+let score=0,combo=0,maxCombo=0,hits=0,eggsCount=0,timeLeft=45,timer=null,sessionMined=0;
+let eggs=[],targets=[],particles=[],floatTexts=[],powerups=[];
+let wave=1,waveTimer=0;
+let shakeX=0,shakeY=0,shakeDecay=0;
+
+// Power-up state
+let puFire=0,puTriple=0,puGold=0; // remaining shots
+
+// Boy character state
+let boy={x:0,y:0,armAngle:0,targetArm:0,throwAnim:0,facing:1};
+
+function startGame(mode){
+  checkEpoch();gameMode=mode;const cost=boostCost();
+  if(mode==='free'){if(!canFree())return;S.lastFree=Date.now();}
+  else{if(S.bal<cost)return;S.bal-=cost;S.burned+=cost*BURN_R;S.recycled+=cost*RECY_R;}
+  S.epochGames++;S.games++;saveS();
+
+  hideAll();document.getElementById('gameUI').style.display='flex';
+  document.getElementById('modeLabel').textContent=mode==='free'?'Free Play':'⚡ Boost 3x';
+  canvas=document.getElementById('C');ctx=canvas.getContext('2d');resizeCanvas();
+  score=0;combo=0;maxCombo=0;hits=0;eggsCount=0;timeLeft=45;sessionMined=0;wave=1;waveTimer=0;
+  eggs=[];targets=[];particles=[];floatTexts=[];powerups=[];
+  puFire=0;puTriple=0;puGold=0;shakeX=0;shakeY=0;
+  rollRNG(); // RNG roll for this session
+  boy.x=W/2;boy.y=H-80;boy.armAngle=-Math.PI/4;boy.throwAnim=0;
+  for(let i=0;i<3;i++)spawnTarget();
+  updateHUD();
+
+  canvas.onclick=canvas.ontouchstart=function(e){e.preventDefault();
+    const rect=canvas.getBoundingClientRect(),sx=canvas.width/rect.width,sy=canvas.height/rect.height;
+    const cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;
+    fireEgg((cx-rect.left)*sx,(cy-rect.top)*sy);};
+
+  if(timer)clearInterval(timer);
+  timer=setInterval(()=>{timeLeft--;waveTimer++;
+    if(waveTimer>=15){waveTimer=0;wave++;spawnWave();
+      const wp=document.getElementById('wavePop');wp.textContent='WAVE '+wave;wp.classList.add('show');setTimeout(()=>wp.classList.remove('show'),1500);}
+    if(timeLeft<=0){clearInterval(timer);endGame();}updateHUD();},1000);
+  gameActive=true;requestAnimationFrame(gameLoop);
+}
+
+function resizeCanvas(){const a=document.getElementById('gameArea');canvas.width=a.clientWidth*2;canvas.height=a.clientHeight*2;W=canvas.width;H=canvas.height;boy.x=W/2;boy.y=H-80;}
+window.onresize=()=>{if(gameActive)resizeCanvas();};
+
+// ===== SIREN TARGETS =====
+const SIREN_TYPES=[
+  {name:'SIREN',color:'#2ECC71',stroke:'#27AE60',speed:1,hp:1,pts:10,size:62},
+  {name:'RUG PULL',color:'#E74C3C',stroke:'#C0392B',speed:1.8,hp:1,pts:15,size:56},
+  {name:'PUMP',color:'#9B59B6',stroke:'#8E44AD',speed:.7,hp:1,pts:12,size:72},
+  {name:'BOSS',color:'#F1C40F',stroke:'#F39C12',speed:.5,hp:3,pts:50,size:85},
+];
+
+function spawnTarget(type){
+  const t=type||SIREN_TYPES[Math.random()>.85?3:Math.random()>.6?Math.floor(Math.random()*3):0];
+  const spd=t.speed*(1+wave*.15);
+  targets.push({x:80+Math.random()*(W-160),y:100+Math.random()*(H*.55),
+    vx:(Math.random()-.5)*3*spd,vy:(Math.random()-.5)*2*spd,
+    size:t.size,hp:t.hp,maxHp:t.hp,dead:false,dt:0,
+    type:t,wobble:Math.random()*Math.PI*2,pumpPhase:Math.random()*Math.PI*2});
+}
+function spawnWave(){const count=2+wave;for(let i=0;i<count;i++)spawnTarget();}
+
+// ===== FIRE EGG =====
+function fireEgg(tx,ty){
+  if(!gameActive)return;
+  // Aim boy
+  boy.targetArm=Math.atan2(ty-boy.y,tx-boy.x);
+  boy.throwAnim=1;
+  boy.facing=tx>boy.x?1:-1;
+
+  const shots=puTriple>0?3:1;
+  if(puTriple>0)puTriple--;
+  for(let i=0;i<shots;i++){
+    eggsCount++;
+    const spread=(i-Math.floor(shots/2))*.15;
+    const dx=tx-boy.x,dy=ty-boy.y,dist=Math.sqrt(dx*dx+dy*dy);
+    const speed=26;
+    const vx=(dx/dist)*speed+Math.sin(spread)*3;
+    const vy=(dy/dist)*speed+Math.cos(spread)*3;
+    eggs.push({x:boy.x,y:boy.y-20,vx,vy,r:13,alive:true,trail:[],fire:puFire>0});
+  }
+  if(puFire>0)puFire--;
+  updateHUD();
+}
+
+// ===== POWERUPS =====
+function spawnPowerup(x,y){
+  if(Math.random()>.25)return; // 25% drop rate
+  const types=['fire','triple','time','gold'];
+  const t=types[Math.floor(Math.random()*types.length)];
+  powerups.push({x,y,type:t,vy:-2,life:1,size:20});
+}
+
+function collectPowerup(p){
+  if(p.type==='fire'){puFire+=3;spawnFloat(p.x,p.y,'🔥 FIRE x3','#FF6B6B');}
+  else if(p.type==='triple'){puTriple+=3;spawnFloat(p.x,p.y,'⚡ TRIPLE x3','#4D96FF');}
+  else if(p.type==='time'){timeLeft+=5;spawnFloat(p.x,p.y,'⏰ +5 SEC','#6BCB77');}
+  else if(p.type==='gold'){puGold+=3;spawnFloat(p.x,p.y,'💎 5x SCORE','#FFD93D');}
+}
+
+function spawnSplat(x,y,big){
+  for(let i=0;i<(big?25:10);i++){const a=Math.random()*Math.PI*2,sp=2+Math.random()*(big?8:5);
+    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:2+Math.random()*(big?6:4),life:1,decay:.02+Math.random()*.03,
+      color:big?['#FFD93D','#FFA94D','#FF6B6B','#FFF5E0'][Math.floor(Math.random()*4)]:'#FFF5E0'});}}
+function spawnFloat(x,y,text,color){floatTexts.push({x,y,text,color,life:1,vy:-2.5,size:20});}
+
+function shake(amt){shakeX=(Math.random()-.5)*amt;shakeY=(Math.random()-.5)*amt;shakeDecay=amt;}
+
+// ===== RTP-CALIBRATED MINING (89.27%) =====
+const RTP = 0.8927;
+const MAX_RET = 3.0; // max return multiplier on cost
+const RTP_CAL = RTP / (MAX_RET * 0.5); // calibration factor = 0.5951
+
+// Session RNG roll (set once per game, shown to player)
+let sessionRNG = 1.0;
+let sessionPerf = 0;
+
+function rollRNG(){
+  // Two uniform randoms summed → triangle-ish distribution, E=1.0
+  sessionRNG = 0.4 + Math.random() * 0.6 + Math.random() * 0.6;
+}
+
+function calcPerf(){
+  const acc = eggsCount > 0 ? hits / eggsCount : 0;
+  const cb = 1 + maxCombo * 0.08;
+  const sn = Math.min(score / 150, 1);
+  sessionPerf = Math.min(acc * cb * sn, 1);
+  return sessionPerf;
+}
+
+function calcMined(){
+  const perf = calcPerf();
+  if(gameMode === 'free'){
+    // Free play: baseReward × skill, no RTP concept
+    const b = baseReward();
+    return b * (0.5 + perf * 1.5) * sessionRNG;
+  } else {
+    // Boost play: RTP-calibrated
+    // E[payout] = cost × MAX_RET × E[perf] × E[rng] × CAL
+    //           = cost × 3 × 0.5 × 1.0 × 0.5951 = cost × 0.8927 ✓
+    const cost = boostCost();
+    return cost * MAX_RET * perf * sessionRNG * RTP_CAL;
+  }
+}
+
+// ===== GAME LOOP =====
+function gameLoop(){if(!gameActive)return;update();draw();requestAnimationFrame(gameLoop);}
+
+function update(){
+  // Boy arm animation
+  boy.armAngle+=(boy.targetArm-boy.armAngle)*.2;
+  if(boy.throwAnim>0)boy.throwAnim-=.08;
+
+  // Shake decay
+  if(shakeDecay>0){shakeDecay*=.9;shakeX=(Math.random()-.5)*shakeDecay;shakeY=(Math.random()-.5)*shakeDecay;
+    if(shakeDecay<.5){shakeX=0;shakeY=0;shakeDecay=0;}}
+
+  // Eggs
+  eggs.forEach(e=>{if(!e.alive)return;
+    e.trail.push({x:e.x,y:e.y,a:1});if(e.trail.length>10)e.trail.shift();e.trail.forEach(t=>t.a*=.85);
+    e.x+=e.vx;e.vy+=.22;e.y+=e.vy;
+    if(e.y>H+50||e.x<-50||e.x>W+50){e.alive=false;combo=0;updateHUD();}});
+
+  // Targets
+  targets.forEach(t=>{if(t.dead){t.dt--;return;}
+    t.x+=t.vx;t.y+=t.vy;t.wobble+=.06;t.pumpPhase+=.04;
+    if(t.type.name==='PUMP')t.size=t.type.size+Math.sin(t.pumpPhase)*10;
+    if(t.x<t.size||t.x>W-t.size)t.vx*=-1;
+    if(t.y<t.size||t.y>H*.7)t.vy*=-1;});
+
+  // Collision
+  eggs.forEach(e=>{if(!e.alive)return;
+    targets.forEach(t=>{if(t.dead||t.hp<=0)return;
+      const dx=e.x-t.x,dy=e.y-t.y,dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<t.size+e.r){
+        e.alive=false;t.hp--;
+        if(t.hp<=0){t.dead=true;t.dt=15;combo++;if(combo>maxCombo)maxCombo=combo;hits++;
+          let pts=t.type.pts*Math.min(combo,10);
+          if(puGold>0){pts*=5;puGold--;}
+          score+=pts;
+          spawnSplat(t.x,t.y,true);spawnFloat(t.x,t.y-t.size-10,`+${pts}${combo>1?' ×'+combo:''}`,combo>3?'#FF6B6B':combo>1?'#FFA94D':'#FFD93D');
+          shake(combo>5?12:combo>2?8:4);
+          spawnPowerup(t.x,t.y);
+          // Fire egg AoE
+          if(e.fire){targets.forEach(t2=>{if(t2.dead||t2===t)return;const d2=Math.sqrt((e.x-t2.x)**2+(e.y-t2.y)**2);
+            if(d2<120){t2.hp--;if(t2.hp<=0){t2.dead=true;t2.dt=15;score+=t2.type.pts;hits++;spawnSplat(t2.x,t2.y,true);spawnFloat(t2.x,t2.y-20,'FIRE!','#FF6B6B');}}});}
+          if(combo>2){const p=document.getElementById('comboPop');p.textContent=combo+'x COMBO!';p.classList.add('show');setTimeout(()=>p.classList.remove('show'),500);}
+        } else {
+          spawnSplat(e.x,e.y,false);spawnFloat(t.x,t.y-t.size,`${t.hp}/${t.maxHp} HP`,'#FF6B6B');
+          shake(3);
+        }
+        updateHUD();}});});
+
+  // Powerup collection (boy proximity)
+  powerups.forEach(p=>{if(p.life<=0)return;p.vy+=.15;p.y+=p.vy;p.life-=.003;
+    const dx=p.x-boy.x,dy=p.y-boy.y;
+    if(Math.sqrt(dx*dx+dy*dy)<60){collectPowerup(p);p.life=0;}
+    if(p.y>H){p.life=0;}});
+
+  targets=targets.filter(t=>{if(t.dead&&t.dt<=0){spawnTarget();return false;}return true;});
+  eggs=eggs.filter(e=>e.alive);
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.life-=p.decay;p.vx*=.97;});
+  particles=particles.filter(p=>p.life>0);
+  floatTexts.forEach(f=>{f.y+=f.vy;f.life-=.018;});
+  floatTexts=floatTexts.filter(f=>f.life>0);
+  powerups=powerups.filter(p=>p.life>0);
+  while(targets.filter(t=>!t.dead).length<2+wave)spawnTarget();
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.save();ctx.translate(shakeX,shakeY);
+
+  // Grid BG
+  ctx.strokeStyle='rgba(42,42,64,.25)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Ground
+  ctx.fillStyle='#0d0d1a';ctx.fillRect(0,H-40,W,40);
+
+  // ===== DRAW SIREN TARGETS =====
+  targets.forEach(t=>{
+    if(t.dead)return;
+    const wo=Math.sin(t.wobble)*5;
+    ctx.save();ctx.translate(t.x,t.y+wo);
+
+    // Glow
+    ctx.shadowColor=t.type.color;ctx.shadowBlur=15;
+
+    // Body circle
+    ctx.fillStyle=t.type.color;ctx.globalAlpha=.15;
+    ctx.beginPath();ctx.arc(0,0,t.size+8,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+
+    ctx.fillStyle='#0a0a14';ctx.strokeStyle=t.type.stroke;ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(0,0,t.size,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;
+
+    // Inner ring
+    ctx.strokeStyle=t.type.color;ctx.lineWidth=1.5;ctx.globalAlpha=.4;
+    ctx.beginPath();ctx.arc(0,0,t.size*.7,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // $ symbol
+    ctx.fillStyle=t.type.color;ctx.font=`bold ${t.size*.5}px "Space Grotesk"`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('$',0,-2);
+
+    // Name label
+    ctx.font=`bold ${Math.max(8,t.size*.18)}px "Space Mono"`;
+    ctx.fillStyle=t.type.color;
+    ctx.fillText(t.type.name,0,t.size*.35);
+
+    // HP bar for boss
+    if(t.maxHp>1){
+      const bw=t.size*1.2,bh=6;
+      ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(-bw/2,t.size+8,bw,bh);
+      ctx.fillStyle=t.type.color;ctx.fillRect(-bw/2,t.size+8,bw*(t.hp/t.maxHp),bh);
+    }
+
+    // Rug pull legs (running animation)
+    if(t.type.name==='RUG PULL'){
+      const legPhase=t.wobble*3;
+      ctx.strokeStyle=t.type.color;ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(-8,t.size);ctx.lineTo(-8-Math.sin(legPhase)*12,t.size+18);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(8,t.size);ctx.lineTo(8+Math.sin(legPhase)*12,t.size+18);ctx.stroke();
+    }
+
+    ctx.restore();
+  });
+
+  // ===== DRAW POWERUPS =====
+  powerups.forEach(p=>{
+    if(p.life<=0)return;
+    ctx.globalAlpha=Math.min(p.life*3,1);
+    ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    const emoji=p.type==='fire'?'🔥':p.type==='triple'?'⚡':p.type==='time'?'⏰':'💎';
+    ctx.fillText(emoji,p.x,p.y);
+    ctx.globalAlpha=1;
+  });
+
+  // ===== DRAW EGG TRAILS =====
+  eggs.forEach(e=>{e.trail.forEach((t,i)=>{ctx.globalAlpha=t.a*.3;ctx.fillStyle=e.fire?'#FF6B6B':'#FFF5E0';
+    ctx.beginPath();ctx.arc(t.x,t.y,e.r*(i/Math.max(e.trail.length,1)),0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;});
+
+  // ===== DRAW EGGS =====
+  eggs.forEach(e=>{if(!e.alive)return;ctx.save();ctx.translate(e.x,e.y);
+    const rot=Math.atan2(e.vy,e.vx)+Math.PI/2;ctx.rotate(rot);
+    if(e.fire){ctx.shadowColor='#FF6B6B';ctx.shadowBlur=15;ctx.fillStyle='#FF8A65';}
+    else{ctx.fillStyle='#FFF5E0';}
+    ctx.beginPath();ctx.ellipse(0,0,e.r*.75,e.r,0,0,Math.PI*2);ctx.fill();
+    if(!e.fire){ctx.strokeStyle='#E8D5B0';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(0,0,e.r*.75,e.r,0,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle='rgba(255,217,61,.35)';ctx.beginPath();ctx.arc(-1,-3,e.r*.25,0,Math.PI*2);ctx.fill();}
+    ctx.shadowBlur=0;ctx.restore();});
+
+  // ===== DRAW PARTICLES =====
+  particles.forEach(p=>{ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;
+
+  // ===== DRAW BOY CHARACTER =====
+  drawBoy();
+
+  // ===== FLOAT TEXTS =====
+  floatTexts.forEach(f=>{ctx.globalAlpha=f.life;ctx.font=`bold ${f.size||20}px "Space Grotesk"`;ctx.fillStyle=f.color;ctx.textAlign='center';ctx.fillText(f.text,f.x,f.y);});ctx.globalAlpha=1;
+
+  // Power-up indicators
+  drawPUIndicators();
+
+  ctx.restore();
+}
+
+// ===== BOY CHARACTER DRAWING =====
+function drawBoy(){
+  const bx=boy.x,by=boy.y;
+  const throwOffset=boy.throwAnim*8;
+  ctx.save();ctx.translate(bx,by);
+  if(boy.facing<0)ctx.scale(-1,1);
+
+  // Legs
+  ctx.strokeStyle='#4A90D9';ctx.lineWidth=5;ctx.lineCap='round';
+  const legPhase=Date.now()*.003;
+  ctx.beginPath();ctx.moveTo(-6,20);ctx.lineTo(-8,42+Math.sin(legPhase)*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(6,20);ctx.lineTo(8,42-Math.sin(legPhase)*2);ctx.stroke();
+  // Shoes
+  ctx.fillStyle='#333';
+  ctx.fillRect(-13,40,10,6);ctx.fillRect(3,40,10,6);
+
+  // Body (shirt)
+  ctx.fillStyle='#4A90D9';
+  ctx.beginPath();ctx.moveTo(-14,0);ctx.lineTo(14,0);ctx.lineTo(12,22);ctx.lineTo(-12,22);ctx.closePath();ctx.fill();
+
+  // Arms
+  ctx.strokeStyle='#FFD5B0';ctx.lineWidth=5;
+  // Back arm
+  ctx.beginPath();ctx.moveTo(-10,4);ctx.lineTo(-10-Math.cos(boy.armAngle+.3)*16,4-Math.sin(boy.armAngle+.3)*16);ctx.stroke();
+  // Front arm (throwing arm)
+  const armLen=22;
+  const armEndX=12+Math.cos(boy.armAngle)*armLen;
+  const armEndY=4+Math.sin(boy.armAngle)*armLen-throwOffset;
+  ctx.lineWidth=6;
+  ctx.beginPath();ctx.moveTo(12,4);ctx.lineTo(armEndX,armEndY);ctx.stroke();
+  // Hand
+  ctx.fillStyle='#FFD5B0';ctx.beginPath();ctx.arc(armEndX,armEndY,5,0,Math.PI*2);ctx.fill();
+  // Egg in hand (if not throwing)
+  if(boy.throwAnim>.5){
+    ctx.fillStyle='#FFF5E0';ctx.beginPath();ctx.ellipse(armEndX+4,armEndY-4,5,7,-.3,0,Math.PI*2);ctx.fill();
+  }
+
+  // Head
+  ctx.fillStyle='#FFD5B0';
+  ctx.beginPath();ctx.arc(0,-16,16,0,Math.PI*2);ctx.fill();
+  // Hair
+  ctx.fillStyle='#1a1a2e';
+  ctx.beginPath();ctx.arc(0,-20,16,Math.PI,.05,true);ctx.fill();
+  ctx.beginPath();ctx.ellipse(2,-30,14,8,0.1,0,Math.PI*2);ctx.fill();
+  // Eyes
+  ctx.fillStyle='#1a1a2e';
+  ctx.beginPath();ctx.arc(-5,-16,2.5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(5,-16,2.5,0,Math.PI*2);ctx.fill();
+  // Angry eyebrows
+  ctx.strokeStyle='#1a1a2e';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(-9,-22);ctx.lineTo(-3,-20);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(9,-22);ctx.lineTo(3,-20);ctx.stroke();
+  // Mouth
+  ctx.beginPath();ctx.arc(0,-10,4,0,Math.PI);ctx.stroke();
+
+  // Label
+  ctx.font='bold 10px "Space Grotesk"';ctx.fillStyle='var(--dim)';ctx.fillStyle='#6a6a8a';
+  ctx.textAlign='center';ctx.fillText('TAP TO THROW',0,58);
+
+  ctx.restore();
+}
+
+function drawPUIndicators(){
+  const indicators=[];
+  if(puFire>0)indicators.push(`🔥${puFire}`);
+  if(puTriple>0)indicators.push(`⚡${puTriple}`);
+  if(puGold>0)indicators.push(`💎${puGold}`);
+  if(indicators.length===0)return;
+  ctx.font='bold 16px "Space Grotesk"';ctx.textAlign='center';ctx.fillStyle='#fff';
+  indicators.forEach((t,i)=>{
+    const x=W/2+(i-indicators.length/2+.5)*60;
+    ctx.fillStyle='rgba(20,20,32,.8)';
+    const tw=ctx.measureText(t).width+16;
+    ctx.fillRect(x-tw/2,H-120,tw,24);
+    ctx.fillStyle='#fff';ctx.fillText(t,x,H-103);
+  });
+}
+
+function updateHUD(){
+  document.getElementById('sScore').textContent=score.toLocaleString();
+  document.getElementById('sCombo').textContent=Math.max(combo,1)+'x';
+  document.getElementById('sTime').textContent=timeLeft;
+  document.getElementById('sWave').textContent=wave;
+  document.getElementById('sEggs').textContent=eggsCount;
+  sessionMined=calcMined();
+  document.getElementById('sMine').textContent=fmt(sessionMined);
+  document.getElementById('liveE').textContent='+'+fmt(sessionMined);
+}
+
+function endGame(){
+  gameActive=false;sessionMined=calcMined();
+  S.bal+=sessionMined;S.mined+=sessionMined;saveS();
+  document.getElementById('fScore').textContent=score.toLocaleString();
+  document.getElementById('fEggs').textContent=eggsCount;
+  document.getElementById('fHits').textContent=hits;
+  document.getElementById('fCombo').textContent=maxCombo+'x';
+  document.getElementById('fAcc').textContent=eggsCount>0?Math.round(hits/eggsCount*100)+'%':'0%';
+  const luckPct=sessionRNG;
+  document.getElementById('fLuck').textContent=luckPct.toFixed(2)+'x';
+  document.getElementById('fLuck').style.color=luckPct>1.1?'#6BCB77':luckPct<0.8?'#FF6B6B':'#4D96FF';
+  document.getElementById('fMined').textContent='+'+fmt(sessionMined);
+  document.getElementById('fMode').textContent=gameMode==='paid'?'⚡ Boost 3x':'Free Play';
+  document.getElementById('fBal').textContent=fmt(S.bal);
+  document.getElementById('fGames').textContent=S.games;
+  hideAll();document.getElementById('scrOver').classList.remove('h');
+}
+
+checkEpoch();showStart();
+</script>
+</body>
+</html>
