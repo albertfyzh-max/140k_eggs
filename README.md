@@ -17,7 +17,6 @@ Tap to throw eggs at $SIREN targets. Mine $EGG tokens. No install, no wallet nee
 | **Total Supply** | 140,000 $EGG (deflationary) |
 | **Mining Pool** | 70% — 98,000 $EGG |
 | **Emission** | BTC-style halving every epoch (7 days) |
-| **RTP** | 89.27% on Boost Play |
 | **Burn** | 50% of Boost costs burned permanently |
 
 ### How Mining Works
